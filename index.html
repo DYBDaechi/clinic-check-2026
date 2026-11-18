@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>토요 클리닉 체크</title>
+<style>
+:root{
+  --red:#e8212e;--red-soft:#fde7e8;--navy:#16203c;--navy-2:#2a3557;
+  --ink:#1b1d24;--txt:#3a3f4b;--muted:#7a8091;--line:#e4e7ee;--bg:#f4f6fa;--card:#fff;
+  --ok:#14915a;--ok-soft:#e3f5ec;--warn:#e07a00;--warn-soft:#fff1de;--gray-soft:#eef0f4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg)}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','Noto Sans CJK KR',sans-serif;color:var(--ink);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;word-break:keep-all}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+.hidden{display:none!important}
+
+/* header */
+.top{background:var(--navy);color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.top-in{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;flex-direction:column;line-height:1}
+.logo small{font-size:10px;color:#c9cfe3;font-weight:700;letter-spacing:.2px;margin-bottom:3px}
+.logo b{font-size:19px;font-weight:900;letter-spacing:-.5px}
+.logo b span{color:#ff5a63}
+.ttl{font-weight:800;font-size:15px;padding-left:12px;border-left:1px solid rgba(255,255,255,.25)}
+.top .sp{flex:1}
+.me{font-size:13px;color:#c9cfe3;display:flex;align-items:center;gap:8px}
+.me button{color:#fff;background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:700}
+.sync{font-size:12px;color:#c9cfe3;white-space:nowrap}
+.sync.err{color:#ffb3b8}
+
+/* date tabs */
+.tabs{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:15}
+.tabs-in{max-width:1100px;margin:0 auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tabs-in::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:8px 14px;border-radius:999px;background:var(--gray-soft);font-weight:800;font-size:14px;color:var(--txt);white-space:nowrap}
+.tab small{font-weight:700;color:var(--muted);margin-left:4px}
+.tab.on{background:var(--red);color:#fff}
+.tab.on small{color:#ffd6d9}
+.tab.today::after{content:"오늘";font-size:10.5px;margin-left:6px;background:#fff;color:var(--red);padding:1px 6px;border-radius:6px}
+
+.wrap{max-width:1100px;margin:0 auto;padding:14px 16px 90px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--muted);font-weight:700}
+.stat .v{font-size:24px;font-weight:900;letter-spacing:-.5px;line-height:1.15}
+.stat.red .v{color:var(--red)}.stat.ok .v{color:var(--ok)}.stat.warn .v{color:var(--warn)}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px;align-items:center}
+.filters select,.filters input[type=search]{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:14px;min-height:40px}
+.filters input[type=search]{flex:1;min-width:150px}
+.chipf{display:flex;gap:6px;flex-wrap:wrap}
+.chipf button{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--txt);min-height:38px}
+.chipf button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.addbtn{background:var(--red);color:#fff;border-radius:10px;padding:9px 14px;font-weight:800;font-size:14px;min-height:40px}
+
+.group-h{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-weight:900;font-size:15px;color:var(--navy)}
+.group-h span{font-size:12.5px;color:var(--muted);font-weight:700}
+.group-h::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* card */
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;position:relative}
+.card.st-in{border-color:#9ad3b6;box-shadow:inset 4px 0 0 var(--ok)}
+.card.st-out{opacity:.72;box-shadow:inset 4px 0 0 var(--muted)}
+.card.st-absent{box-shadow:inset 4px 0 0 var(--red)}
+.c-top{display:flex;align-items:flex-start;gap:10px}
+.c-name{font-size:18px;font-weight:900;letter-spacing:-.4px}
+.c-name .x{font-size:11px;font-weight:800;background:var(--warn-soft);color:var(--warn);padding:2px 6px;border-radius:6px;vertical-align:3px;margin-left:4px}
+.c-meta{font-size:13px;color:var(--muted);margin-top:1px}
+.c-meta b{color:var(--txt);font-weight:700}
+.c-badge{margin-left:auto;font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;white-space:nowrap;background:var(--gray-soft);color:var(--muted)}
+.c-badge.in{background:var(--ok-soft);color:var(--ok)}
+.c-badge.out{background:var(--gray-soft);color:var(--txt)}
+.c-badge.absent{background:var(--red-soft);color:var(--red)}
+.c-time{font-size:13px;font-weight:700;color:var(--navy);background:#eef1f8;border-radius:8px;padding:5px 8px;display:inline-block}
+.needs{display:flex;flex-wrap:wrap;gap:4px}
+.need{font-size:12px;background:var(--red-soft);color:#b3141e;padding:3px 8px;border-radius:6px;font-weight:700}
+.need.free{background:var(--gray-soft);color:var(--txt);font-weight:500}
+.pmemo{font-size:12.5px;color:var(--txt);background:#fafbfd;border:1px dashed var(--line);border-radius:8px;padding:6px 8px}
+.pmemo b{color:var(--muted);font-weight:700}
+
+.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.row .lab{font-size:12px;color:var(--muted);font-weight:800;width:38px;flex:none}
+.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font-size:13.5px;font-weight:800;color:var(--txt);min-height:38px}
+.btn.on-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.on-red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.on-navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn small{font-weight:700;opacity:.85;margin-left:3px}
+.tests{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.t{border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center;background:#fff;min-height:52px;display:flex;flex-direction:column;justify-content:center}
+.t .tn{font-size:11.5px;color:var(--muted);font-weight:800}
+.t .tv{font-size:14px;font-weight:900;color:#b0b5c2}
+.t.pass{background:var(--ok-soft);border-color:#a6dcc0}.t.pass .tv{color:var(--ok)}
+.t.retry{background:var(--warn-soft);border-color:#f3c98c}.t.retry .tv{color:var(--warn)}
+.t.na{background:var(--gray-soft)}.t.na .tv{color:var(--muted);font-weight:700}
+.wrongbtn{grid-column:auto}
+.c-in{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:14px;background:#fff}
+.c-in:focus,.filters select:focus,.filters input:focus{outline:2px solid #9aa6c7;outline-offset:0;border-color:transparent}
+textarea.c-in{resize:vertical;min-height:38px}
+.c-foot{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
+.c-foot .saving{color:var(--warn);font-weight:700}
+.c-foot .saved{color:var(--ok);font-weight:700}
+.c-foot .failed{color:var(--red);font-weight:800}
+.tel{color:var(--navy);font-weight:700;text-decoration:none}
+
+.empty{text-align:center;color:var(--muted);padding:50px 10px;background:#fff;border:1px dashed var(--line);border-radius:14px;margin-top:12px}
+
+/* login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--navy)}
+.lbox{background:#fff;border-radius:18px;padding:28px 24px;width:100%;max-width:380px;text-align:center}
+.lbox .logo{align-items:center;margin-bottom:14px}
+.lbox .logo small{color:var(--muted);font-size:11px}
+.lbox .logo b{font-size:26px;color:var(--navy)}
+.lbox h1{font-size:18px;font-weight:900;margin-bottom:4px}
+.lbox p{font-size:13px;color:var(--muted);margin-bottom:16px}
+.lbox input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:15px;margin-bottom:8px}
+.lbox button{width:100%;background:var(--red);color:#fff;border-radius:10px;padding:12px;font-weight:900;font-size:15px}
+.lbox .err{color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-top:6px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(10,15,30,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
+.mbox{background:#fff;border-radius:16px;padding:20px;width:100%;max-width:440px;max-height:92vh;overflow:auto}
+.mbox h2{font-size:17px;font-weight:900;margin-bottom:4px}
+.mbox p.d{font-size:13px;color:var(--muted);margin-bottom:12px}
+.mbox label{display:block;font-size:12.5px;font-weight:800;color:var(--txt);margin:10px 0 4px}
+.mbox .act{display:flex;gap:8px;margin-top:16px}
+.mbox .act button{flex:1;padding:11px;border-radius:10px;font-weight:900}
+.mbox .act .ok{background:var(--red);color:#fff}.mbox .act .no{background:var(--gray-soft)}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:700;z-index:60;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+
+.foot{text-align:center;padding:24px 0 10px;color:var(--muted)}
+.foot small{display:block;font-size:11px;font-weight:700}
+.foot b{font-size:16px;color:var(--navy);font-weight:900}.foot b span{color:var(--red)}
+
+@media (max-width:720px){
+  .stats{grid-template-columns:repeat(5,1fr);gap:5px}
+  .stat{padding:7px 6px;text-align:center;border-radius:10px}
+  .stat .k{font-size:10.5px;line-height:1.2;min-height:25px;display:flex;align-items:center;justify-content:center}
+  .stat .v{font-size:20px}
+  #me-name{display:none}
+  .logo small{display:none}
+  .me button{padding:6px 8px}
+  .ttl{display:none}
+  .list{grid-template-columns:1fr}
+  .tabs{top:56px}
+}
+@media (max-width:420px){.sync{display:none}}
+@media print{.top,.tabs,.filters,.addbtn{display:none}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<!-- ===== 로그인 ===== -->
+<section id="login" class="login hidden">
+  <div class="lbox">
+    <div class="logo"><small>결과로 증명하는 1등급, DYB</small><b>DYB<span>대치본원</span></b></div>
+    <h1>토요 ALL-DAY CLINIC 체크</h1>
+    <p>선생님 전용 페이지입니다.</p>
+    <input id="lg-name" placeholder="선생님 이름 (예: 권다은)" autocomplete="name">
+    <input id="lg-pw" type="password" placeholder="비밀번호" autocomplete="current-password">
+    <button id="lg-go">들어가기</button>
+    <div class="err" id="lg-err"></div>
+  </div>
+</section>
+
+<!-- ===== 메인 ===== -->
+<section id="app" class="hidden">
+  <header class="top"><div class="top-in">
+    <div class="logo"><small>결과로 증명하는 1등급, DYB</small><b>DYB<span>대치본원</span></b></div>
+    <div class="ttl">토요 ALL-DAY CLINIC 체크</div>
+    <div class="sp"></div>
+    <div class="sync" id="sync">불러오는 중…</div>
+    <div class="me"><span id="me-name"></span><button id="refresh" title="새로고침">↻ 새로고침</button><button id="logout">나가기</button></div>
+  </div></header>
+
+  <nav class="tabs"><div class="tabs-in" id="tabs"></div></nav>
+
+  <main class="wrap">
+    <div class="stats" id="stats"></div>
+
+    <div class="filters">
+      <input type="search" id="q" placeholder="학생 이름 검색">
+      <select id="f-teacher"><option value="">담임 전체</option></select>
+      <select id="f-school"><option value="">학교 전체</option></select>
+      <select id="f-group">
+        <option value="teacher">담임별로 보기</option>
+        <option value="time">시간대별로 보기</option>
+        <option value="school">학교별로 보기</option>
+        <option value="none">이름순</option>
+      </select>
+      <button class="addbtn" id="add">＋ 학생 추가</button>
+    </div>
+    <div class="chipf" id="f-status">
+      <button data-v="" class="on">전체</button>
+      <button data-v="wait">미도착</button>
+      <button data-v="in">수업 중</button>
+      <button data-v="retry">재시험·미완료 남음</button>
+      <button data-v="out">하원</button>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="foot"><small>결과로 증명하는 1등급, DYB</small><b>DYB<span>대치본원</span></b></div>
+  </main>
+</section>
+
+<!-- 학생 추가 -->
+<div class="modal hidden" id="m-add">
+  <div class="mbox">
+    <h2>학생 추가</h2>
+    <p class="d">신청서를 내지 않았지만 담임 판단으로 클리닉에 부른 학생을 추가합니다.</p>
+    <label>학생 이름 *</label><input class="c-in" id="a-name">
+    <label>학교</label><input class="c-in" id="a-school" list="dl-school">
+    <label>수업 반</label><input class="c-in" id="a-cls" placeholder="예: 화목반">
+    <label>담임 선생님</label><input class="c-in" id="a-teacher" list="dl-teacher">
+    <label>참석 시간</label><input class="c-in" id="a-time" placeholder="예: 오후 ~ 저녁 (15:00 – 20:00)">
+    <label>보강할 부분</label><input class="c-in" id="a-needs" placeholder="예: 문법 개념 · 구두 테스트">
+    <label>참석 토요일</label><div class="row" id="a-dates"></div>
+    <div class="act"><button class="no" id="a-cancel">취소</button><button class="ok" id="a-save">추가하기</button></div>
+  </div>
+</div>
+<datalist id="dl-school"></datalist><datalist id="dl-teacher"></datalist>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+/* ▼▼▼ 설치할 때 여기만 바꾸면 됩니다 ▼▼▼ */
+const API_URL = 'PASTE_APPS_SCRIPT_URL_HERE';
+/* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+const REFRESH_MS = 45000;
+const TESTS = [
+  {k:'word', n:'단어'}, {k:'text', n:'본문'}, {k:'grammar', n:'문법'}, {k:'oral', n:'문법 구두'}
+];
+const CYCLE = ['', '통과', '재시험', '해당없음'];
+const TIME_ORDER = ['종일','오전','오후'];
+
+const S = {
+  key: '', by: '', applicants: [], records: {}, date: '', pending: {}, timers: {},
+  filters: {q:'', teacher:'', school:'', group:'teacher', status:''}, lastSync: null
+};
+
+/* ---------- storage (per device) ---------- */
+const store = {
+  get(k){ try{ return localStorage.getItem('clinic_'+k) || ''; }catch(e){ return ''; } },
+  set(k,v){ try{ localStorage.setItem('clinic_'+k, v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem('clinic_'+k); }catch(e){} }
+};
+
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const nowHM = () => { const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); };
+function todayKey(){ const d=new Date(); return (d.getMonth()+1)+'/'+d.getDate(); }
+function parseDates(str){
+  const out=[]; const re=/(\d{1,2})\s*월\s*(\d{1,2})\s*일/g; let m;
+  while((m=re.exec(String(str)))) out.push(Number(m[1])+'/'+Number(m[2]));
+  const re2=/(?:^|[^\d])(\d{1,2})\/(\d{1,2})(?!\d)/g;
+  while((m=re2.exec(String(str)))) { const k=Number(m[1])+'/'+Number(m[2]); if(!out.includes(k)) out.push(k); }
+  return out;
+}
+function dateSortKey(k){ const [m,d]=k.split('/').map(Number); return (m<6? m+12 : m)*100 + d; }
+function timeBucket(t){
+  t=String(t||'');
+  if(/종일|10[:시]?\s*0?0?\s*[-–~]\s*20/.test(t)) return '종일 (10–20시)';
+  if(/오전/.test(t) || /^1[0-2]/.test(t.trim())) return '오전 ~ 오후 (10–15시)';
+  if(/오후|저녁|1[5-9]|20/.test(t)) return '오후 ~ 저녁 (15–20시)';
+  return t || '시간 미기재';
+}
+function splitNeeds(s){
+  s=String(s||'').trim(); if(!s) return [];
+  const known=['교과서 본문 암기','문법 개념 · 구두 테스트','학교 프린트','기출 문제 · 오답 정리','단어 · 숙어','서술형'];
+  const parts=s.split(/,\s*/);
+  if(parts.every(p=>known.includes(p.trim()))) return parts.map(p=>({t:p.trim(),free:false}));
+  const hits=parts.filter(p=>known.includes(p.trim()));
+  if(hits.length===parts.length) return hits.map(p=>({t:p,free:false}));
+  return [{t:s,free:true}];
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.add('hidden'),2200); }
+
+/* ---------- API ---------- */
+async function apiGet(){
+  const r = await fetch(API_URL + (API_URL.includes('?')?'&':'?') + 'key=' + encodeURIComponent(S.key) + '&t=' + Date.now());
+  return r.json();
+}
+async function apiPost(body){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({key:S.key, by:S.by}, body))});
+  return r.json();
+}
+
+/* ---------- login ---------- */
+async function tryLogin(name, pw){
+  S.key = pw; S.by = name;
+  const res = await apiGet();
+  if(!res.ok) throw new Error(res.error === 'auth' ? '비밀번호가 맞지 않아요.' : ('불러오기 실패: ' + res.error));
+  store.set('key', pw); store.set('by', name);
+  applyData(res);
+  return true;
+}
+function showLogin(msg){
+  $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
+  $('#lg-name').value = store.get('by'); $('#lg-err').textContent = msg || '';
+  ($('#lg-name').value ? $('#lg-pw') : $('#lg-name')).focus();
+}
+async function doLogin(){
+  const name=$('#lg-name').value.trim(), pw=$('#lg-pw').value;
+  if(!name){ $('#lg-err').textContent='선생님 이름을 입력해 주세요.'; return; }
+  if(!pw){ $('#lg-err').textContent='비밀번호를 입력해 주세요.'; return; }
+  $('#lg-go').textContent='확인 중…'; $('#lg-err').textContent='';
+  try{ await tryLogin(name,pw); startApp(); }
+  catch(e){ $('#lg-err').textContent = e.message || '연결에 실패했어요.'; }
+  finally{ $('#lg-go').textContent='들어가기'; }
+}
+
+/* ---------- data ---------- */
+function applyData(res){
+  S.applicants = (res.applicants||[]).map(a => Object.assign(a, {dates: parseDates(a.saturdays)}));
+  const incoming = res.records || {};
+  // 저장 대기 중인 내 수정은 덮어쓰지 않음
+  Object.keys(S.pending).forEach(k => { if(S.records[k]) incoming[k] = S.records[k]; });
+  S.records = incoming;
+  S.lastSync = new Date();
+}
+async function refresh(silent){
+  try{
+    const res = await apiGet();
+    if(!res.ok){ if(res.error==='auth'){ store.del('key'); showLogin('비밀번호가 바뀌었어요. 다시 들어와 주세요.'); return; } throw new Error(res.error); }
+    applyData(res); render(); setSync();
+    if(!silent) toast('최신 내용으로 불러왔어요');
+  }catch(e){ setSync(true); if(!silent) toast('불러오기 실패 — 인터넷 연결을 확인해 주세요'); }
+}
+function setSync(err){
+  const el=$('#sync');
+  if(err){ el.textContent='연결 끊김'; el.classList.add('err'); return; }
+  el.classList.remove('err');
+  el.textContent = S.lastSync ? ('업데이트 ' + pad(S.lastSync.getHours())+':'+pad(S.lastSync.getMinutes())) : '';
+}
+function allDates(){
+  const set=new Set(); S.applicants.forEach(a=>a.dates.forEach(d=>set.add(d)));
+  Object.keys(S.records).forEach(k=>set.add(k.split('|')[0]));
+  return [...set].sort((a,b)=>dateSortKey(a)-dateSortKey(b));
+}
+function pickDefaultDate(dates){
+  const saved = store.get('date'); if(saved && dates.includes(saved)) return saved;
+  const t=todayKey(); if(dates.includes(t)) return t;
+  const tk=dateSortKey(t); const next=dates.find(d=>dateSortKey(d)>=tk);
+  return next || dates[dates.length-1] || '';
+}
+function rec(a){
+  const k=S.date+'|'+a.id;
+  return S.records[k] || {date:S.date, studentId:a.id, name:a.name, school:a.school, teacher:a.teacher,
+    attend:'', arrive:'', leave:'', word:'', text:'', grammar:'', oral:'', progress:'', wrong:false, note:''};
+}
+function status(r){
+  if(r.attend==='결석') return 'absent';
+  if(r.leave) return 'out';
+  if(r.attend==='출석') return 'in';
+  return 'wait';
+}
+function hasRemaining(r){
+  return TESTS.some(t=>r[t.k]==='재시험') || (r.attend==='출석' && !r.wrong);
+}
+
+/* ---------- save ---------- */
+function update(a, patch, immediate){
+  const k=S.date+'|'+a.id;
+  const r=Object.assign({}, rec(a), patch, {date:S.date, studentId:a.id, name:a.name, school:a.school, teacher:a.teacher});
+  S.records[k]=r; S.pending[k]=true;
+  renderCard(a); renderStats();
+  clearTimeout(S.timers[k]);
+  S.timers[k]=setTimeout(()=>push(k, a), immediate?0:900);
+}
+async function push(k, a){
+  const r=S.records[k]; setFoot(a,'saving');
+  try{
+    const res=await apiPost({action:'save', record:r});
+    if(!res.ok) throw new Error(res.error);
+    if(S.records[k]===r){ delete S.pending[k]; S.records[k]=Object.assign({}, r, {by:res.record.by, at:res.record.at}); }
+    setFoot(a,'saved');
+  }catch(e){
+    setFoot(a,'failed');
+    S.timers[k]=setTimeout(()=>push(k,a), 8000);
+  }
+}
+function setFoot(a, st){
+  const el=document.querySelector('[data-foot="'+CSS.escape(a.id)+'"] .s'); if(!el) return;
+  el.className='s '+st;
+  el.textContent = st==='saving'?'저장 중…': st==='saved'?'저장됨 ✓': st==='failed'?'저장 실패 · 자동 재시도':'';
+}
+
+/* ---------- render ---------- */
+function startApp(){
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#me-name').textContent = S.by + ' 선생님';
+  const dates=allDates(); S.date=pickDefaultDate(dates);
+  fillFilters(); render(); setSync();
+  clearInterval(S.poll); S.poll=setInterval(()=>{ if(!document.hidden) refresh(true); }, REFRESH_MS);
+}
+function fillFilters(){
+  const teachers=[...new Set(S.applicants.map(a=>a.teacher).filter(Boolean))].sort();
+  const schools=[...new Set(S.applicants.map(a=>a.school).filter(Boolean))].sort();
+  const ft=$('#f-teacher'), fs=$('#f-school');
+  const keepT=ft.value, keepS=fs.value;
+  ft.innerHTML='<option value="">담임 전체</option>'+teachers.map(t=>`<option>${esc(t)}</option>`).join('');
+  fs.innerHTML='<option value="">학교 전체</option>'+schools.map(t=>`<option>${esc(t)}</option>`).join('');
+  ft.value=keepT; fs.value=keepS;
+  $('#dl-teacher').innerHTML=teachers.map(t=>`<option value="${esc(t)}">`).join('');
+  $('#dl-school').innerHTML=schools.map(t=>`<option value="${esc(t)}">`).join('');
+}
+function render(){ renderTabs(); renderStats(); renderList(); }
+function dayStudents(){ return S.applicants.filter(a=>a.dates.includes(S.date)); }
+function renderTabs(){
+  const t=todayKey();
+  $('#tabs').innerHTML = allDates().map(d=>{
+    const n=S.applicants.filter(a=>a.dates.includes(d)).length;
+    return `<button class="tab ${d===S.date?'on':''} ${d===t?'today':''}" data-d="${d}">${d} (토)<small>${n}명</small></button>`;
+  }).join('') || '<span style="color:var(--muted);font-size:13px">아직 신청이 없어요</span>';
+  const on=$('#tabs .tab.on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
+}
+function renderStats(){
+  const list=dayStudents(); const rs=list.map(rec);
+  const c={all:list.length, in:rs.filter(r=>status(r)==='in').length, out:rs.filter(r=>status(r)==='out').length,
+    wait:rs.filter(r=>status(r)==='wait').length, retry:rs.filter(r=>r.attend==='출석' && hasRemaining(r)).length};
+  $('#stats').innerHTML = `
+    <div class="stat"><div class="k">신청</div><div class="v">${c.all}</div></div>
+    <div class="stat"><div class="k">미도착</div><div class="v">${c.wait}</div></div>
+    <div class="stat ok"><div class="k">수업 중</div><div class="v">${c.in}</div></div>
+    <div class="stat warn"><div class="k">재시험·오답 남음</div><div class="v">${c.retry}</div></div>
+    <div class="stat"><div class="k">하원</div><div class="v">${c.out}</div></div>`;
+}
+function filtered(){
+  const f=S.filters; const q=f.q.trim();
+  return dayStudents().filter(a=>{
+    if(q && !a.name.includes(q)) return false;
+    if(f.teacher && a.teacher!==f.teacher) return false;
+    if(f.school && a.school!==f.school) return false;
+    const r=rec(a), st=status(r);
+    if(f.status==='wait' && st!=='wait') return false;
+    if(f.status==='in' && st!=='in') return false;
+    if(f.status==='out' && st!=='out') return false;
+    if(f.status==='retry' && !(r.attend==='출석' && hasRemaining(r))) return false;
+    return true;
+  }).sort((x,y)=>x.name.localeCompare(y.name,'ko'));
+}
+function renderList(){
+  const list=filtered(); const el=$('#list');
+  if(!S.date){ el.innerHTML='<div class="empty">아직 들어온 신청서가 없어요.</div>'; return; }
+  if(!list.length){ el.innerHTML='<div class="empty">조건에 맞는 학생이 없어요.</div>'; return; }
+  const g=S.filters.group;
+  if(g==='none'){ el.innerHTML='<div class="list">'+list.map(cardHTML).join('')+'</div>'; return; }
+  const keyOf = a => g==='teacher' ? (a.teacher||'담임 미기재') + ' 선생님' : g==='school' ? (a.school||'학교 미기재') : timeBucket(a.time);
+  const groups={}; list.forEach(a=>{ (groups[keyOf(a)]=groups[keyOf(a)]||[]).push(a); });
+  const order=Object.keys(groups).sort((a,b)=> g==='time'
+    ? (TIME_ORDER.findIndex(t=>a.startsWith(t))+9)%9 - (TIME_ORDER.findIndex(t=>b.startsWith(t))+9)%9 || a.localeCompare(b)
+    : a.localeCompare(b,'ko'));
+  el.innerHTML = order.map(k=>`<div class="group-h">${esc(k)} <span>${groups[k].length}명</span></div><div class="list">${groups[k].map(cardHTML).join('')}</div>`).join('');
+}
+function cardHTML(a){
+  const r=rec(a), st=status(r);
+  const badge = st==='in'?`<span class="c-badge in">수업 중 · ${esc(r.arrive)} 도착</span>`
+    : st==='out'?`<span class="c-badge out">하원 ${esc(r.leave)}</span>`
+    : st==='absent'?`<span class="c-badge absent">결석</span>`
+    : `<span class="c-badge">미도착</span>`;
+  const needs=splitNeeds(a.needs).map(n=>`<span class="need ${n.free?'free':''}">${esc(n.t)}</span>`).join('');
+  const tests=TESTS.map(t=>{
+    const v=r[t.k]||''; const cls=v==='통과'?'pass':v==='재시험'?'retry':v==='해당없음'?'na':'';
+    return `<button class="t ${cls}" data-act="test" data-k="${t.k}"><span class="tn">${t.n}</span><span class="tv">${v==='해당없음'?'해당없음':(v||'—')}</span></button>`;
+  }).join('');
+  const meta=[a.school, a.cls, a.teacher && (a.teacher+' 선생님')].filter(Boolean).map(esc).join(' · ');
+  const phone = a.phone ? `<br>☎ <a class="tel" href="tel:${esc(a.phone.replace(/[^\d]/g,''))}">${esc(a.phone)}</a>` : '';
+  const who = r.by ? `${esc(r.by)} 선생님 · ${esc(r.at||'')}` : '';
+  return `<article class="card st-${st}" data-id="${esc(a.id)}">
+    <div class="c-top">
+      <div><div class="c-name">${esc(a.name)}${a.source==='extra'?'<span class="x">담임 추가</span>':''}</div>
+      <div class="c-meta">${meta}${phone}</div></div>
+      ${badge}
+    </div>
+    <div class="row">${a.time?`<span class="c-time">🕘 ${esc(a.time)}</span>`:''}</div>
+    ${needs?`<div class="needs">${needs}</div>`:''}
+    ${a.memo?`<div class="pmemo"><b>학부모 전달:</b> ${esc(a.memo)}</div>`:''}
+    <div class="row">
+      <span class="lab">출결</span>
+      <button class="btn ${r.attend==='출석'?'on-ok':''}" data-act="arrive">도착${r.arrive?`<small>${esc(r.arrive)}</small>`:''}</button>
+      <button class="btn ${r.leave?'on-navy':''}" data-act="leave">하원${r.leave?`<small>${esc(r.leave)}</small>`:''}</button>
+      <button class="btn ${r.attend==='결석'?'on-red':''}" data-act="absent">결석</button>
+    </div>
+    <div class="tests">${tests}</div>
+    <div class="row">
+      <span class="lab">오답</span>
+      <button class="btn ${r.wrong?'on-ok':''}" data-act="wrong">${r.wrong?'✓ 오답 완료':'오답 미완료'}</button>
+    </div>
+    <input class="c-in" data-act="progress" placeholder="진도 — 어디까지 했는지 (예: 8과 본문 2까지, 프린트 3p)" value="${esc(r.progress)}">
+    <textarea class="c-in" data-act="note" rows="1" placeholder="메모 (다음 주 이어서 할 것, 학부모 연락 등)">${esc(r.note)}</textarea>
+    <div class="c-foot" data-foot="${esc(a.id)}"><span class="s"></span><span>${who}</span></div>
+  </article>`;
+}
+function renderCard(a){
+  const old=document.querySelector('.card[data-id="'+CSS.escape(a.id)+'"]'); if(!old) return;
+  const active=document.activeElement; const focusAct = old.contains(active) ? active.dataset.act : null;
+  const selStart = focusAct && active.selectionStart, selEnd = focusAct && active.selectionEnd;
+  const tmp=document.createElement('div'); tmp.innerHTML=cardHTML(a); const nw=tmp.firstElementChild;
+  old.replaceWith(nw);
+  if(focusAct && (focusAct==='progress'||focusAct==='note')){ const el=nw.querySelector(`[data-act="${focusAct}"]`); el.focus(); try{ el.setSelectionRange(selStart,selEnd); }catch(e){} }
+}
+
+/* ---------- events ---------- */
+function findA(el){ const c=el.closest('.card'); return c && S.applicants.find(a=>a.id===c.dataset.id); }
+document.addEventListener('click', e=>{
+  const tab=e.target.closest('.tab'); if(tab){ S.date=tab.dataset.d; store.set('date',S.date); render(); window.scrollTo({top:0}); return; }
+  const fb=e.target.closest('#f-status button'); if(fb){ document.querySelectorAll('#f-status button').forEach(b=>b.classList.toggle('on',b===fb)); S.filters.status=fb.dataset.v; renderList(); return; }
+  const b=e.target.closest('[data-act]'); if(!b || b.tagName==='INPUT' || b.tagName==='TEXTAREA') return;
+  const a=findA(b); if(!a) return; const r=rec(a);
+  switch(b.dataset.act){
+    case 'arrive':
+      if(r.attend==='출석'){ if(confirmUndo('도착 기록을 지울까요?')) update(a,{attend:'', arrive:'', leave:''},true); }
+      else update(a,{attend:'출석', arrive: nowHM()},true);
+      break;
+    case 'leave': if(r.leave){ if(confirmUndo('하원 기록을 지울까요?')) update(a,{leave:''},true); } else update(a,{leave:nowHM(), attend:'출석', arrive:r.arrive||''},true); break;
+    case 'absent': update(a, r.attend==='결석' ? {attend:''} : {attend:'결석', arrive:'', leave:''}, true); break;
+    case 'wrong': update(a,{wrong:!r.wrong},true); break;
+    case 'test': { const k=b.dataset.k; const i=CYCLE.indexOf(r[k]||''); update(a,{[k]:CYCLE[(i+1)%CYCLE.length]},true); break; }
+  }
+});
+function confirmUndo(msg){ return window.confirm(msg); }
+document.addEventListener('input', e=>{
+  const el=e.target; const act=el.dataset && el.dataset.act;
+  if(act==='progress'||act==='note'){ const a=findA(el); if(a){ const k=S.date+'|'+a.id; const r=Object.assign({},rec(a),{[act]:el.value}); S.records[k]=r; S.pending[k]=true; setFoot(a,'saving'); clearTimeout(S.timers[k]); S.timers[k]=setTimeout(()=>push(k,a),900); } }
+  if(el.id==='q'){ S.filters.q=el.value; renderList(); }
+});
+$('#f-teacher').addEventListener('change', e=>{ S.filters.teacher=e.target.value; store.set('teacher',e.target.value); renderList(); });
+$('#f-school').addEventListener('change', e=>{ S.filters.school=e.target.value; renderList(); });
+$('#f-group').addEventListener('change', e=>{ S.filters.group=e.target.value; store.set('group',e.target.value); renderList(); });
+$('#refresh').addEventListener('click', ()=>refresh(false));
+$('#logout').addEventListener('click', ()=>{ store.del('key'); clearInterval(S.poll); showLogin(); });
+$('#lg-go').addEventListener('click', doLogin);
+$('#lg-pw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && S.key && !$('#app').classList.contains('hidden')) refresh(true); });
+
+/* 학생 추가 */
+$('#add').addEventListener('click', ()=>{
+  ['name','school','cls','time','needs'].forEach(k=>$('#a-'+k).value='');
+  $('#a-teacher').value = S.filters.teacher || S.by;
+  $('#a-dates').innerHTML = allDates().map(d=>`<button class="btn ${d===S.date?'on-navy':''}" data-d="${d}">${d}</button>`).join('');
+  $('#m-add').classList.remove('hidden'); $('#a-name').focus();
+});
+$('#a-dates').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b) b.classList.toggle('on-navy'); });
+$('#a-cancel').addEventListener('click', ()=>$('#m-add').classList.add('hidden'));
+$('#a-save').addEventListener('click', async ()=>{
+  const name=$('#a-name').value.trim(); if(!name){ toast('학생 이름을 입력해 주세요'); return; }
+  const dates=[...document.querySelectorAll('#a-dates .on-navy')].map(b=>b.dataset.d);
+  if(!dates.length){ toast('참석 토요일을 하나 이상 골라 주세요'); return; }
+  const s={name, school:$('#a-school').value.trim(), cls:$('#a-cls').value.trim(), teacher:$('#a-teacher').value.trim().replace(/\s*선생님$/,''),
+    time:$('#a-time').value.trim(), needs:$('#a-needs').value.trim(), saturdays:dates.join(', ')};
+  $('#a-save').textContent='추가 중…';
+  try{
+    const res=await apiPost({action:'addStudent', student:s}); if(!res.ok) throw new Error(res.error);
+    res.student.dates=parseDates(res.student.saturdays); S.applicants.push(res.student);
+    $('#m-add').classList.add('hidden'); fillFilters(); render(); toast(name+' 학생을 추가했어요');
+  }catch(e){ toast('추가 실패 — 다시 시도해 주세요'); }
+  finally{ $('#a-save').textContent='추가하기'; }
+});
+
+/* ---------- boot ---------- */
+(async function boot(){
+  S.filters.group = store.get('group') || 'teacher'; $('#f-group').value=S.filters.group;
+  S.filters.teacher = store.get('teacher') || '';
+  if(!API_URL || API_URL.indexOf('PASTE_')===0){ showLogin('⚠ 설치가 아직 안 됐어요 — index.html의 API_URL을 넣어 주세요.'); return; }
+  const key=store.get('key'), by=store.get('by');
+  if(key && by){
+    try{ await tryLogin(by,key); startApp(); $('#f-teacher').value=S.filters.teacher; if($('#f-teacher').value!==S.filters.teacher) S.filters.teacher=''; renderList(); return; }
+    catch(e){ showLogin(e.message); return; }
+  }
+  showLogin();
+})();
+</script>
+</body>
+</html>
