@@ -112,6 +112,20 @@ textarea.c-in{resize:vertical;min-height:38px}
 .c-foot .saved{color:var(--ok);font-weight:700}
 .c-foot .failed{color:var(--red);font-weight:800}
 .tel{color:var(--navy);font-weight:700;text-decoration:none}
+.simbox{border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.simt{font-size:12px;font-weight:800;color:var(--muted)}
+.simr{border-radius:9px;padding:7px 10px;font-size:13px;border:1px solid var(--line)}
+.simr.ok{background:var(--ok-soft);border-color:#a6dcc0}.simr.ng{background:var(--warn-soft);border-color:#f3c98c}
+.simh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.simh .sc{font-weight:900;margin-left:auto}.simr.ok .sc{color:var(--ok)}.simr.ng .sc{color:var(--warn)}
+.simh small{color:var(--muted);font-size:11px;width:100%}
+.simh .rt{font-size:11px;background:var(--navy);color:#fff;padding:1px 6px;border-radius:5px}
+.simw{margin-top:3px}.simw b{color:var(--red)}.simw small{color:var(--muted)}
+.simr details{margin-top:4px}.simr summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--navy)}
+.wa{font-size:12.5px;padding:3px 0;border-top:1px solid rgba(0,0,0,.06)}
+#unmatched{margin-top:22px}#unmatched summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--muted)}
+.ulist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin-top:8px}
+.ulist>div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px}
 .del{margin-left:auto;flex:none;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:4px 8px;background:#fff}
 .c-badge+.del{margin-left:6px}
 .del:hover{color:var(--red);border-color:var(--red)}
@@ -223,6 +237,7 @@ textarea.c-in{resize:vertical;min-height:38px}
 
     <div id="list"></div>
 
+    <div id="unmatched"></div>
     <div id="deleted"></div>
     <div class="foot"><small>결과로 증명하는 1등급, DYB</small><b>DYB<span>대치본원</span></b></div>
   </main>
@@ -348,6 +363,7 @@ function applyData(res){
   // 저장 대기 중인 내 수정은 덮어쓰지 않음
   Object.keys(S.pending).forEach(k => { if(S.records[k]) incoming[k] = S.records[k]; });
   S.records = incoming;
+  S.sims = res.sims || [];
   recompute();
   S.lastSync = new Date();
 }
@@ -475,7 +491,27 @@ function filtered(){
     return true;
   }).sort((x,y)=>x.name.localeCompare(y.name,'ko'));
 }
+const SIM_SETS={DY68:'동아윤',DY4:'동아윤',DI68:'동아이',MR46:'미래엔',MR57:'미래엔',BS78:'비상',NK78:'능률김',CJ46:'천재소',CJ67:'천재소'};
+function simLine(x){
+  const les=/^\d+$/.test(x.lesson)?x.lesson+'과':x.lesson; const ok=x.result==='통과';
+  let wr={}; try{ wr=JSON.parse(x.writing||'{}'); }catch(e){}
+  const wk=Object.keys(wr);
+  return `<div class="simr ${ok?'ok':'ng'}"><div class="simh"><b>${esc(x.round)}차</b> ${esc(SIM_SETS[x.set]||x.set)} ${esc(les)} ${x.kind==='재도전'?'<span class="rt">재도전</span>':''}<span class="sc">${esc(x.score)}점 · ${ok?'통과':'재시험'}</span><small>${esc(x.at)}</small></div>`+
+    `<div class="simw">${x.wrong?('✗ 틀린 번호: <b>'+esc(x.wrong)+'</b>'):'객관식 모두 정답'} <small>(객관식 ${esc(x.correct)}/${esc(x.total)})</small></div>`+
+    (wk.length?`<details><summary>서술형 답 ${wk.length}개 보기</summary>${wk.map(n=>`<div class="wa"><b>${esc(n)}</b> ${esc(wr[n])}</div>`).join('')}</details>`:'')+`</div>`;
+}
+function simHTML(a){
+  const list=(S.sims||[]).filter(x=>x.studentId===a.id);
+  if(!list.length) return '';
+  return `<div class="simbox"><div class="simt">📝 Simulation 제출 (자동채점)</div>${list.slice().reverse().map(simLine).join('')}</div>`;
+}
+function renderUnmatched(){
+  const box=$('#unmatched'); const u=(S.sims||[]).filter(x=>!x.studentId);
+  if(!u.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<details><summary>클리닉 명단에 없는 이름으로 제출된 답안 ${u.length}건</summary><div class="ulist">${u.slice().reverse().map(x=>`<div><b>${esc(x.name)}</b> <small>${esc(x.school||'')}</small>${simLine(x)}</div>`).join('')}</div></details>`;
+}
 function renderDeleted(){
+  renderUnmatched();
   const box=$('#deleted'); const d=S.deleted||[];
   if(!d.length){ box.innerHTML=''; return; }
   box.innerHTML=`<details><summary>삭제한 학생 ${d.length}명</summary><div class="dlist">${d.map(a=>`<span>${esc(a.name)} <small>${esc(a.school||'')}</small> <button data-undel="${esc(a.id)}">되돌리기</button></span>`).join('')}</div></details>`;
@@ -516,6 +552,7 @@ function cardAllHTML(a){
     ${needs?`<div class="needs">${needs}</div>`:''}
     ${a.memo?`<div class="pmemo"><b>학부모 전달:</b> ${esc(a.memo)}</div>`:''}
     <div class="row"><span class="lab">참석일</span>${chips}</div>
+    ${simHTML(a)}
   </article>`;
 }
 function cardHTML(a){
@@ -556,6 +593,7 @@ function cardHTML(a){
     </div>
     <div class="tests">${tests}</div>
     <div class="tests sims">${sims}</div>
+    ${simHTML(a)}
     <div class="row">
       <span class="lab">오답</span>
       <button class="btn ${r.wrong?'on-ok':''}" data-act="wrong">${r.wrong?'✓ 오답 완료':'오답 미완료'}</button>
