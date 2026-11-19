@@ -491,7 +491,7 @@ function filtered(){
     return true;
   }).sort((x,y)=>x.name.localeCompare(y.name,'ko'));
 }
-const SIM_SETS={DY68:'동아윤',DY4:'동아윤',DI68:'동아이',MR46:'미래엔',MR57:'미래엔',BS78:'비상',NK78:'능률김',CJ46:'천재소',CJ67:'천재소'};
+const SIM_SETS={DY:'동아윤',DY68:'동아윤',DY4:'동아윤',DI68:'동아이',MR46:'미래엔',MR57:'미래엔',BS78:'비상',NK78:'능률김',CJ46:'천재소',CJ67:'천재소'};
 function simLine(x){
   const les=/^\d+$/.test(x.lesson)?x.lesson+'과':x.lesson; const ok=x.result==='통과';
   let wr={}; try{ wr=JSON.parse(x.writing||'{}'); }catch(e){}
