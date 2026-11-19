@@ -112,6 +112,15 @@ textarea.c-in{resize:vertical;min-height:38px}
 .c-foot .saved{color:var(--ok);font-weight:700}
 .c-foot .failed{color:var(--red);font-weight:800}
 .tel{color:var(--navy);font-weight:700;text-decoration:none}
+.del{margin-left:auto;flex:none;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:4px 8px;background:#fff}
+.c-badge+.del{margin-left:6px}
+.del:hover{color:var(--red);border-color:var(--red)}
+#deleted{margin-top:22px}
+#deleted summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--muted)}
+.dlist{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.dlist span{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px 6px 12px;font-size:14px;font-weight:700}
+.dlist small{color:var(--muted);font-weight:600}
+.dlist button{margin-left:6px;background:var(--navy);color:#fff;border-radius:7px;padding:4px 9px;font-size:12px;font-weight:800}
 .dchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font-size:13px;font-weight:800;color:var(--navy);min-height:34px}
 .dchip.in,.dchip.out{background:var(--ok-soft);border-color:#a6dcc0;color:var(--ok)}
 .dchip.absent{background:var(--red-soft);border-color:#f3b6ba;color:var(--red)}
@@ -214,6 +223,7 @@ textarea.c-in{resize:vertical;min-height:38px}
 
     <div id="list"></div>
 
+    <div id="deleted"></div>
     <div class="foot"><small>결과로 증명하는 1등급, DYB</small><b>DYB<span>대치본원</span></b></div>
   </main>
 </section>
@@ -329,12 +339,16 @@ async function doLogin(){
 }
 
 /* ---------- data ---------- */
+const DEL='삭제';
+function isDeleted(a){ const r=S.records[DEL+'|'+a.id]; return !!(r && r.attend===DEL); }
+function recompute(){ S.applicants=(S.all||[]).filter(a=>!isDeleted(a)); S.deleted=(S.all||[]).filter(isDeleted); }
 function applyData(res){
-  S.applicants = (res.applicants||[]).map(a => Object.assign(a, {dates: parseDates(a.saturdays)}));
+  S.all = (res.applicants||[]).map(a => Object.assign(a, {dates: parseDates(a.saturdays)}));
   const incoming = res.records || {};
   // 저장 대기 중인 내 수정은 덮어쓰지 않음
   Object.keys(S.pending).forEach(k => { if(S.records[k]) incoming[k] = S.records[k]; });
   S.records = incoming;
+  recompute();
   S.lastSync = new Date();
 }
 async function refresh(silent){
@@ -353,7 +367,7 @@ function setSync(err){
 }
 function allDates(){
   const set=new Set(); S.applicants.forEach(a=>a.dates.forEach(d=>set.add(d)));
-  Object.keys(S.records).forEach(k=>{ const d=k.split('|')[0]; if(!HIDE_DATES.includes(d)) set.add(d); });
+  Object.keys(S.records).forEach(k=>{ const d=k.split('|')[0]; if(!HIDE_DATES.includes(d) && d!==DEL) set.add(d); });
   return [...set].sort((a,b)=>dateSortKey(a)-dateSortKey(b));
 }
 function pickDefaultDate(dates){
@@ -461,7 +475,20 @@ function filtered(){
     return true;
   }).sort((x,y)=>x.name.localeCompare(y.name,'ko'));
 }
+function renderDeleted(){
+  const box=$('#deleted'); const d=S.deleted||[];
+  if(!d.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<details><summary>삭제한 학생 ${d.length}명</summary><div class="dlist">${d.map(a=>`<span>${esc(a.name)} <small>${esc(a.school||'')}</small> <button data-undel="${esc(a.id)}">되돌리기</button></span>`).join('')}</div></details>`;
+}
+async function setDeleted(a, on){
+  const k=DEL+'|'+a.id;
+  const r={date:DEL, studentId:a.id, name:a.name, school:a.school, teacher:a.teacher, attend:on?DEL:'', note:on?('삭제: '+S.by):''};
+  const prev=S.records[k]; S.records[k]=r; recompute(); render();
+  try{ const res=await apiPost({action:'save', record:r}); if(!res.ok) throw new Error(res.error); toast(on?(a.name+' 학생을 목록에서 뺐어요'):(a.name+' 학생을 되돌렸어요')); }
+  catch(e){ if(prev) S.records[k]=prev; else delete S.records[k]; recompute(); render(); toast('저장 실패 — 다시 시도해 주세요'); }
+}
 function renderList(){
+  renderDeleted();
   const list=filtered(); const el=$('#list');
   if(!S.applicants.length){ el.innerHTML='<div class="empty">아직 들어온 신청서가 없어요.</div>'; return; }
   if(!list.length){ el.innerHTML='<div class="empty">조건에 맞는 학생이 없어요.</div>'; return; }
@@ -484,7 +511,7 @@ function cardAllHTML(a){
     return `<button class="dchip ${st}" data-d="${d}" data-id="${esc(a.id)}">${d}${lab}</button>`;
   }).join('');
   return `<article class="card" data-id="${esc(a.id)}">
-    <div class="c-top"><div><div class="c-name">${esc(a.name)}${a.source==='extra'?'<span class="x">담임 추가</span>':''}</div><div class="c-meta">${meta}${phone}</div></div></div>
+    <div class="c-top"><div><div class="c-name">${esc(a.name)}${a.source==='extra'?'<span class="x">담임 추가</span>':''}</div><div class="c-meta">${meta}${phone}</div></div><button class="del" data-del="${esc(a.id)}" title="목록에서 삭제">삭제</button></div>
     ${a.time?`<div class="row"><span class="c-time">🕘 ${esc(a.time)}</span></div>`:''}
     ${needs?`<div class="needs">${needs}</div>`:''}
     ${a.memo?`<div class="pmemo"><b>학부모 전달:</b> ${esc(a.memo)}</div>`:''}
@@ -516,6 +543,7 @@ function cardHTML(a){
       <div><div class="c-name">${esc(a.name)}${a.source==='extra'?'<span class="x">담임 추가</span>':''}</div>
       <div class="c-meta">${meta}${phone}</div></div>
       ${badge}
+      <button class="del" data-del="${esc(a.id)}" title="목록에서 삭제">삭제</button>
     </div>
     <div class="row">${a.time?`<span class="c-time">🕘 ${esc(a.time)}</span>`:''}</div>
     ${needs?`<div class="needs">${needs}</div>`:''}
@@ -549,6 +577,8 @@ function renderCard(a){
 /* ---------- events ---------- */
 function findA(el){ const c=el.closest('.card'); return c && S.applicants.find(a=>a.id===c.dataset.id); }
 document.addEventListener('click', e=>{
+  const dl=e.target.closest('[data-del]'); if(dl){ const a=(S.all||[]).find(x=>x.id===dl.dataset.del); if(a && window.confirm(a.name+' 학생을 목록에서 삭제할까요?\n(맨 아래 "삭제한 학생"에서 되돌릴 수 있어요)')) setDeleted(a,true); return; }
+  const ud=e.target.closest('[data-undel]'); if(ud){ const a=(S.all||[]).find(x=>x.id===ud.dataset.undel); if(a) setDeleted(a,false); return; }
   const tab=e.target.closest('.tab'); if(tab){ S.date=tab.dataset.d; render(); window.scrollTo({top:0}); return; }
   const dc=e.target.closest('.dchip'); if(dc){ S.date=dc.dataset.d; render(); const c=document.querySelector('.card[data-id="'+CSS.escape(dc.dataset.id)+'"]'); if(c) c.scrollIntoView({block:'center'}); else window.scrollTo({top:0}); return; }
   const fb=e.target.closest('#f-status button'); if(fb){ document.querySelectorAll('#f-status button').forEach(b=>b.classList.toggle('on',b===fb)); S.filters.status=fb.dataset.v; renderList(); return; }
@@ -598,7 +628,7 @@ $('#a-save').addEventListener('click', async ()=>{
   $('#a-save').textContent='추가 중…';
   try{
     const res=await apiPost({action:'addStudent', student:s}); if(!res.ok) throw new Error(res.error);
-    res.student.dates=parseDates(res.student.saturdays); S.applicants.push(res.student);
+    res.student.dates=parseDates(res.student.saturdays); S.all.push(res.student); recompute();
     $('#m-add').classList.add('hidden'); fillFilters(); render(); toast(name+' 학생을 추가했어요');
   }catch(e){ toast('추가 실패 — 다시 시도해 주세요'); }
   finally{ $('#a-save').textContent='추가하기'; }
