@@ -94,6 +94,9 @@ button{cursor:pointer;border:none;background:none}
 .btn.on-navy{background:var(--navy);border-color:var(--navy);color:#fff}
 .btn small{font-weight:700;opacity:.85;margin-left:3px}
 .tests{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tests.sims{grid-template-columns:repeat(3,1fr)}
+.tests.sims .t{background:#f7f8fc}
+.tests.sims .t.pass{background:var(--ok-soft)}.tests.sims .t.retry{background:var(--warn-soft)}.tests.sims .t.na{background:var(--gray-soft)}
 .t{border:1px solid var(--line);border-radius:10px;padding:6px 4px;text-align:center;background:#fff;min-height:52px;display:flex;flex-direction:column;justify-content:center}
 .t .tn{font-size:11.5px;color:var(--muted);font-weight:800}
 .t .tv{font-size:14px;font-weight:900;color:#b0b5c2}
@@ -244,6 +247,7 @@ const TESTS = [
   {k:'word', n:'단어'}, {k:'text', n:'본문'}, {k:'grammar', n:'문법'}, {k:'oral', n:'문법 구두'}
 ];
 const CYCLE = ['', '통과', '재시험', '해당없음'];
+const SIMS = [{k:'sim1', n:'Sim 1차'}, {k:'sim2', n:'Sim 2차'}, {k:'sim3', n:'Sim 3차'}];
 const TIME_ORDER = ['종일','오전','오후'];
 
 const S = {
@@ -359,7 +363,7 @@ function pickDefaultDate(dates){
 function rec(a){
   const k=S.date+'|'+a.id;
   return S.records[k] || {date:S.date, studentId:a.id, name:a.name, school:a.school, teacher:a.teacher,
-    attend:'', arrive:'', leave:'', word:'', text:'', grammar:'', oral:'', progress:'', wrong:false, note:''};
+    attend:'', arrive:'', leave:'', word:'', text:'', grammar:'', oral:'', sim1:'', sim2:'', sim3:'', progress:'', wrong:false, note:''};
 }
 function status(r){
   if(r.attend==='결석') return 'absent';
@@ -368,7 +372,7 @@ function status(r){
   return 'wait';
 }
 function hasRemaining(r){
-  return TESTS.some(t=>r[t.k]==='재시험') || (r.attend==='출석' && !r.wrong);
+  return TESTS.concat(SIMS).some(t=>r[t.k]==='재시험') || (r.attend==='출석' && !r.wrong);
 }
 
 /* ---------- save ---------- */
@@ -495,6 +499,11 @@ function cardHTML(a){
     : st==='absent'?`<span class="c-badge absent">결석</span>`
     : `<span class="c-badge">미도착</span>`;
   const needs=splitNeeds(a.needs).map(n=>`<span class="need ${n.free?'free':''}">${esc(n.t)}</span>`).join('');
+  const tbtn=t=>{
+    const v=r[t.k]||''; const cls=v==='통과'?'pass':v==='재시험'?'retry':v==='해당없음'?'na':'';
+    return `<button class="t ${cls}" data-act="test" data-k="${t.k}"><span class="tn">${t.n}</span><span class="tv">${v==='해당없음'?'해당없음':(v||'—')}</span></button>`;
+  };
+  const sims=SIMS.map(tbtn).join('');
   const tests=TESTS.map(t=>{
     const v=r[t.k]||''; const cls=v==='통과'?'pass':v==='재시험'?'retry':v==='해당없음'?'na':'';
     return `<button class="t ${cls}" data-act="test" data-k="${t.k}"><span class="tn">${t.n}</span><span class="tv">${v==='해당없음'?'해당없음':(v||'—')}</span></button>`;
@@ -518,6 +527,7 @@ function cardHTML(a){
       <button class="btn ${r.attend==='결석'?'on-red':''}" data-act="absent">결석</button>
     </div>
     <div class="tests">${tests}</div>
+    <div class="tests sims">${sims}</div>
     <div class="row">
       <span class="lab">오답</span>
       <button class="btn ${r.wrong?'on-ok':''}" data-act="wrong">${r.wrong?'✓ 오답 완료':'오답 미완료'}</button>
