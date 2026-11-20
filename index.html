@@ -604,6 +604,7 @@ function cardAllHTML(a){
     ${a.memo?`<div class="pmemo"><b>학부모 전달:</b> ${esc(a.memo)}</div>`:''}
     <div class="row"><span class="lab">참석일</span>${chips}</div>
     ${simHTML(a)}
+    ${(()=>{ const t=dateSortKey(todayKey()); const ds=a.dates.slice().sort((x,y)=>dateSortKey(x)-dateSortKey(y)); const nx=ds.find(d=>dateSortKey(d)>=t)||ds[ds.length-1]; return nx?msgHTML(a,nx):''; })()}
   </article>`;
 }
 function cardHTML(a){
