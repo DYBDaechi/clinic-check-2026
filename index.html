@@ -120,6 +120,7 @@ textarea.c-in{resize:vertical;min-height:38px}
 .msgbox .mrow{display:flex;gap:8px;align-items:center;margin-top:6px}
 .msgbox .mcopy{background:var(--navy,#1b2a4a);color:#fff;border:0;border-radius:9px;padding:8px 14px;font-weight:800;font-size:13px;cursor:pointer}
 .msgbox .mhint{font-size:11.5px;color:var(--muted)}
+.msgbox.invite{border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;background:#fff;margin:4px 0 12px}
 .simbox{border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:6px}
 .simt{font-size:12px;font-weight:800;color:var(--muted)}
 .simr{border-radius:9px;padding:7px 10px;font-size:13px;border:1px solid var(--line)}
@@ -243,6 +244,9 @@ textarea.c-in{resize:vertical;min-height:38px}
       <button data-v="out">하원</button>
     </div>
 
+    <details class="msgbox invite" id="invite"><summary>📣 아직 신청 안 한 학부모님께 보낼 문자</summary>
+      <textarea rows="14"></textarea>
+      <div class="mrow"><button class="mcopy" data-copymsg>문자 복사</button><span class="mhint">필요하면 고친 뒤 복사하세요</span></div></details>
     <div id="list"></div>
 
     <div id="unmatched"></div>
@@ -459,7 +463,7 @@ function fillFilters(){
   $('#dl-teacher').innerHTML=teachers.map(t=>`<option value="${esc(t)}">`).join('');
   $('#dl-school').innerHTML=schools.map(t=>`<option value="${esc(t)}">`).join('');
 }
-function render(){ $('#f-status').classList.toggle('hidden', S.date==='ALL'); renderTabs(); renderStats(); renderList(); }
+function render(){ renderInvite(); $('#f-status').classList.toggle('hidden', S.date==='ALL'); renderTabs(); renderStats(); renderList(); }
 function dayStudents(){ return S.date==='ALL' ? S.applicants.slice() : S.applicants.filter(a=>a.dates.includes(S.date)); }
 function renderTabs(){
   const t=todayKey();
@@ -583,6 +587,38 @@ https://dybdaechi.github.io/1-2final-2026/
 결과로 증명하는 1등급, DYB
 DYB대치본원`;
 }
+const CLINIC_FORM='https://docs.google.com/forms/d/e/1FAIpQLSfCpcsS4Zql2gOguSde61w9xQQBdhV_kJzq7rJUUcEmuUDW3A/viewform';
+const CLINIC_DAYS=['11/21','11/28','12/5','12/12'];
+function inviteMsg(){
+  const t=dateSortKey(todayKey()); const left=CLINIC_DAYS.filter(d=>dateSortKey(d)>=t);
+  return `[토요 ALL-DAY CLINIC 신청 안내]
+안녕하세요, 학부모님^^
+DYB 담임 ${S.by||'000'}입니다.
+
+기말고사를 앞두고 부족한 부분을 촘촘히 채우는 시간,
+토요 ALL-DAY CLINIC 신청을 아직 하지 않으셔서 다시 안내드립니다.
+
+■ 남은 일정: ${(left.length?left:CLINIC_DAYS).map(dayLabel).join(' · ')}
+ - 원하는 토요일과 시간대를 골라 참석합니다.
+ - 하루 종일 있는 것이 아니라, 필요한 보강을 마치면 하원합니다.
+
+■ 클리닉에서 하는 일
+ - Simulation 재도전 시험 (90점 이상 통과)
+ - 오답 정리 및 문법 구두 확인
+ - 밀린 테스트 재시험 · 진도 보충
+
+■ 신청 링크
+${CLINIC_FORM}
+(참석할 토요일과 시간을 골라 신청해 주세요)
+
+신청서를 확인하고 담임이 필요한 보강 내용을 미리 준비하겠습니다.
+기말고사는 2학년의 첫걸음입니다. 끝까지 꼼꼼히 챙기겠습니다.
+감사합니다.
+
+결과로 증명하는 1등급, DYB
+DYB대치본원`;
+}
+function renderInvite(){ const b=$('#invite'); if(!b) return; const ta=b.querySelector('textarea'); if(!b.open || !ta.value) ta.value=inviteMsg(); }
 function msgHTML(a,d){
   const k=a.id+'|'+d;
   return `<details class="msgbox" data-msg="${esc(k)}"${MSG_OPEN.has(k)?' open':''}><summary>💬 학부모 안내 문자 (${esc(dayLabel(d))})</summary>
