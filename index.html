@@ -112,6 +112,8 @@ textarea.c-in{resize:vertical;min-height:38px}
 .c-foot .saved{color:var(--ok);font-weight:700}
 .c-foot .failed{color:var(--red);font-weight:800}
 .tel{color:var(--navy);font-weight:700;text-decoration:none}
+.wa .wm{font-style:normal;font-weight:900;margin-right:4px}.wa .wm.ok{color:var(--ok)}.wa .wm.pt{color:var(--warn)}.wa .wm.ng{color:var(--red)}
+.wa .wk{font-size:12px;color:var(--muted);margin:2px 0 4px 18px}.wa .na{color:var(--muted)}.wnote{font-size:11.5px;color:var(--muted);margin-top:6px}
 .msgbox{border-top:1.5px dashed var(--line);padding-top:8px}
 .msgbox summary{cursor:pointer;font-size:13px;font-weight:800;color:var(--navy,#1b2a4a);list-style:none}
 .msgbox summary::-webkit-details-marker{display:none}
@@ -507,11 +509,14 @@ function filtered(){
 const SIM_SETS={DY:'동아윤',DY68:'동아윤',DY4:'동아윤',DI68:'동아이',MR46:'미래엔',MR57:'미래엔',BS78:'비상',NK78:'능률김',CJ46:'천재소',CJ67:'천재소'};
 function simLine(x){
   const les=/^\d+$/.test(x.lesson)?x.lesson+'과':x.lesson; const ok=x.result==='통과';
-  let wr={}; try{ wr=JSON.parse(x.writing||'{}'); }catch(e){}
-  const wk=Object.keys(wr);
+  let wr={}, wg={}; try{ wr=JSON.parse(x.writing||'{}'); }catch(e){} try{ wg=JSON.parse(x.wgrade||'{}'); }catch(e){}
+  const wk=[...new Set(Object.keys(wr).concat(Object.keys(wg)))].sort((a,b)=>a-b);
+  const mark=n=>{ const g=wg[n]; if(!g) return ''; return g.s>=1?'<i class="wm ok">✓</i>':g.s>0?'<i class="wm pt">△</i>':'<i class="wm ng">✗</i>'; };
+  const nW=Object.keys(wg).length, okW=Object.values(wg).filter(g=>g.s>=1).length;
+  const tl=nW?`맞은 문항 ${esc(x.correct)}/${esc(x.total)} · 서술형 ${okW}/${nW}`:`객관식 ${esc(x.correct)}/${esc(x.total)}`;
   return `<div class="simr ${ok?'ok':'ng'}"><div class="simh"><b>${esc(x.round)}차</b> ${esc(SIM_SETS[x.set]||x.set)} ${esc(les)} ${x.kind==='재도전'?'<span class="rt">재도전</span>':''}<span class="sc">${esc(x.score)}점 · ${ok?'통과':'재시험'}</span><small>${esc(x.at)}</small></div>`+
-    `<div class="simw">${x.wrong?('✗ 틀린 번호: <b>'+esc(x.wrong)+'</b>'):'객관식 모두 정답'} <small>(객관식 ${esc(x.correct)}/${esc(x.total)})</small></div>`+
-    (wk.length?`<details><summary>서술형 답 ${wk.length}개 보기</summary>${wk.map(n=>`<div class="wa"><b>${esc(n)}</b> ${esc(wr[n])}</div>`).join('')}</details>`:'')+`</div>`;
+    `<div class="simw">${x.wrong?('✗ 틀린 번호: <b>'+esc(x.wrong)+'</b>'):'모두 정답'} <small>(${tl})</small></div>`+
+    (wk.length?`<details><summary>서술형 ${wk.length}문항 보기${nW?' · 자동채점':''}</summary>${wk.map(n=>`<div class="wa">${mark(n)}<b>${esc(n)}</b> ${wr[n]?esc(wr[n]):'<span class="na">(빈칸)</span>'}${wg[n]&&wg[n].s<1&&wg[n].k?`<div class="wk">정답: ${esc(wg[n].k)}</div>`:''}</div>`).join('')}<div class="wnote">✓ 정답 · △ 일부 맞음 · ✗ 다름 — 표현이 달라도 맞는 답일 수 있으니 ✗·△만 확인해 주세요.</div></details>`:'')+`</div>`;
 }
 function simHTML(a){
   const list=(S.sims||[]).filter(x=>x.studentId===a.id);
